@@ -193,61 +193,36 @@ public class MainActivity extends WearableActivity implements SensorEventListene
             @Override
             public void run() {
                 try {
-
-//                    DatagramSocket socket = new DatagramSocket();
+                    // Check for RECORD_AUDIO permission before using AudioRecord
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        Log.e("VS", "RECORD_AUDIO permission not granted!");
+                        return;
+                    }
                     byte[] buffer = new byte[minBufSize];
-//                    ByteBuffer[] buffer = new ByteBuffer[minBufSize];
-//                    short[] buffer = new short[minBufSize];
-
-//                    HashMap<String, byte[]> to_send = new HashMap<String, byte[]>();
                     HashMap<String, String> to_send = new HashMap<String, String>();
-//                    JSONObject to_send = new JSONObject();
-
                     Log.d("VS","Buffer created of size " + minBufSize);
                     DatagramPacket packet;
-
-
                     Log.d("VS", "Address retrieved");
-
                     final InetAddress destination = InetAddress.getByName(SERVER);
                     Log.d("VS", "Address retrieved");
-
-
                     audioRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC,audioSamplingRate,
                             AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT,
                             minBufSize*10);
                     Log.d("VS", "Recorder initialized");
-
                     audioRecorder.startRecording();
-
-
                     while(status) {
-
-
-                        //reading data from MIC into buffer
                         int n_read;
                         n_read = audioRecorder.read(buffer, 0, buffer.length);
-//                        n_read = audioRecorder.read(buffer, buffer.length);
-                        // convert buffer to string
-                        // byte[] audio_encoded = Base64.getEncoder().encode(buffer);
-                        // get current timestamp and send that as well
                         long unixTime = System.currentTimeMillis();
-//                        to_send.put("unixTime_send", unixTime);
                         String unixString = String.valueOf(unixTime) + ",";
-
                         String audio_encoded = unixString + "audio," + Base64.getEncoder().encodeToString(buffer);
-
                         byte[] audio_buf = audio_encoded.getBytes(StandardCharsets.UTF_8);
                         packet = new DatagramPacket(audio_buf, audio_buf.length, destination, port);
                         socket.send(packet);
                         System.out.println("MinBufferSize: " +minBufSize + " ,new buff size " + audio_buf.length + ", nread, " + n_read);
                     }
-
-
                 } catch(UnknownHostException e) {
                     Log.e("VS", "UnknownHostException",e);
-
-
                 } catch (IOException e) {
                     e.printStackTrace();
                     Log.e("VS", ""+ e);

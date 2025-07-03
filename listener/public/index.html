@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live IMU plot</title>
+
+  <!-- 1️⃣  Core libs (exact order matters) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>   <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.2/build/global/luxon.min.js"></script>  <!-- Date lib -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>            <!-- Date-adapter -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0"></script>        <!-- Streaming -->
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>                       <!-- Socket.IO -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.2"></script> <!-- draw markers :contentReference[oaicite:5]{index=5} -->
+  <style> canvas{max-width:100%;} </style>
+</head>
+<body>
+  <h2>Real-time acceleration (|a|)</h2>
+  <canvas id="chart"></canvas>
+
+<script>
+  const queue = []; 
+  const hitAnn = {};                           // ➊ temporary buffer
+  const data   = { datasets: [{ label: "|a|", data: [] }] };
+  // ── Chart config ────────────────────────────────────────────
+  const config = {
+    type: 'line',
+    data: { datasets: [{ label: '|a|', data: [] }] },
+    options: {
+      parsing: false,
+      // scales: {                          // 5 s window, 20 Hz refresh
+      //   x: { type: 'realtime',
+      //         realtime: { duration: 5000, refresh: 50,
+      //           onRefresh: chart => {     // ➋ flush 20 Hz
+      //             while (queue.length) {
+      //               chart.data.datasets[0].data.push(queue.shift());
+      //             }
+      //           } } } },
+      scales: {
+        x: {
+          type: 'realtime',
+          realtime: {
+            duration: 5000,
+            refresh: 50,
+            onRefresh: chart => {
+              while (queue.length) {
+                chart.data.datasets[0].data.push(queue.shift());
+              }
+            }
+          }
+        },
+        y: {
+          min: 0,
+          max: 100
+        }
+      },
+      animation: false       ,            // less CPU :contentReference[oaicite:5]{index=5}
+      plugins: { annotation: { annotations: hitAnn } }
+    }
+  };
+  const chart = new Chart(document.getElementById('chart'), config);
+
+  // ── Socket bridge ───────────────────────────────────────────
+  const socket = io();
+  socket.on('imu', ({mag, ts}) => queue.push({x: ts, y: mag}));  // ➌
+  +  /* ---- impact markers ---------------------------------------------- */
+  socket.on("hit", ({ ts }) => {
+    const id = `hit${ts}`;
+    hitAnn[id] = {                      // a thin red vertical line
+      type: "line",
+      xMin: ts, xMax: ts,
+      borderColor: "red",
+      borderWidth: 2,
+      label: { content: "Hit", enabled: true, position: "start" }
+    };
+    chart.update("quiet");              // cheap redraw
+  });
+</script>
+</body>
+</html>

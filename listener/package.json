@@ -1,0 +1,17 @@
+{
+    "name": "sensorstreamer-udp-listener",
+    "version": "1.0.0",
+    "description": "UDP listener for SensorStreamerWearOS",
+    "type": "module",
+    "main": "udp-listener.js",
+    "scripts": {
+        "start": "node udp-listener.js"
+    },
+    "author": "",
+    "license": "MIT",
+    "keywords": [],
+    "dependencies": {
+        "express": "^5.1.0",
+        "socket.io": "^4.8.1"
+    }
+}
